@@ -1,7 +1,7 @@
 # Skills Hunter — MVP 设计文档
 
 **日期：** 2026-04-07
-**状态：** 草稿，待用户确认
+**状态：** 草稿 v2，待用户确认
 
 ---
 
@@ -17,6 +17,7 @@ Skills Hunter 是一个面向探索型 AI 开发者的 skill 发现与收集平�
 
 ### 包含
 - 首页：热榜（时间衰减排名）+ 分类目录导航
+- 搜索：按名称 + 描述全文搜索，结果页支持按分类筛选
 - Skill 卡片：视觉优先，展示名称、描述、标签、投票数、评论数、GitHub Stars
 - Skill 详情页：完整信息 + 安装命令（一键复制）+ 评论区
 - 用户系统：注册 / 登录（邮箱 + GitHub OAuth）
@@ -50,16 +51,18 @@ Skills Hunter 是一个面向探索型 AI 开发者的 skill 发现与收集平�
 ### skills 表
 ```
 id            uuid, primary key
+skill_id      text, UNIQUE       -- 自然唯一键，格式为 {repo}/{name}，如 obra/superpowers/brainstorming
 name          text               -- skill 名称，如 brainstorming
 repo          text               -- 来源仓库，如 obra/superpowers
 description   text               -- 来自 SKILL.md 的 description 字段
 install_cmd   text               -- 安装命令，如 npx skills add obra/superpowers
-category_id   uuid, FK           -- 所属固定分类
-tags          text[]             -- 标签数组
+category_id   uuid, FK           -- 所属固定分类（单个）
+tags          text[]             -- 标签数组（多个）
 github_stars  integer            -- 抓取时的 GitHub star 数
 last_updated  timestamptz        -- GitHub 上的最近更新时间
 created_at    timestamptz        -- 入库时间
 vote_count    integer default 0  -- 投票总数（冗余字段，加速查询）
+comment_count integer default 0  -- 评论总数（冗余字段，加速查询）
 ```
 
 ### categories 表（预设，人工维护）
@@ -112,6 +115,10 @@ score = votes / (age_hours + 2)^1.5
 - 左栏（主区域）：热榜 skill 列表，按实时 score 降序，分页展示（每页 20 条）
 - 右栏（侧边）：分类目录快速入口 + 本周新增数量
 
+### 搜索结果页 `/search?q=`
+- 按名称 + 描述全文搜索（Supabase 内置 `to_tsvector` 全文检索）
+- 支持按分类筛选，支持按「最热」/ 「最新」排序
+
 ### 分类页 `/category/[slug]`
 - 展示该分类下所有 skills，支持按「最热」/ 「最新」切换排序
 
@@ -137,7 +144,7 @@ score = votes / (age_hours + 2)^1.5
    - `skills/` 目录下所有子目录
    - 每个子目录的 `SKILL.md` 文件，解析 frontmatter 提取 `name`、`description`
 3. 构造安装命令：`npx skills add {owner}/{repo}`
-4. 写入 Supabase（已存在则更新 stars 和 updated 时间，不存在则新增）
+4. 写入 Supabase，以 `skill_id`（`{repo}/{name}`）为唯一键做 upsert：已存在则更新 stars 和 updated 时间，不存在则新增
 
 **sources.json 示例：**
 ```json
