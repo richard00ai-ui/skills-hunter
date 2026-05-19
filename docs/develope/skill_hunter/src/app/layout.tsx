@@ -3,7 +3,7 @@ import { Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { getCategories } from '@/lib/queries';
+import { getCategories, getCurrentUser } from '@/lib/queries';
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const categories = await getCategories();
+  const [categories, user] = await Promise.all([getCategories(), getCurrentUser()]);
 
   return (
     <html lang="en">
@@ -27,7 +27,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         />
       </head>
       <body className={`${jakarta.className} bg-surface text-on-surface min-h-screen flex flex-col`}>
-        <Navbar categories={categories} />
+        <Navbar categories={categories} user={user} />
         <div className="flex-1 flex flex-col">{children}</div>
         <Footer />
       </body>

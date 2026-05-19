@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase-server';
-import type { Skill, SkillRanked, Category } from '@/types';
+import type { Skill, SkillRanked, Category, Comment } from '@/types';
 
 const PAGE_SIZE = 20;
 
@@ -69,6 +69,40 @@ export async function getSkillById(id: string): Promise<Skill | null> {
     .single();
   if (error) return null;
   return data as Skill;
+}
+
+export async function getComments(skillId: string): Promise<Comment[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('comments')
+    .select('*')
+    .eq('skill_id', skillId)
+    .order('created_at', { ascending: false });
+  if (error) return [];
+  return (data ?? []) as Comment[];
+}
+
+export async function getCurrentUser() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return user;
+}
+
+export async function getUserVote(skillId: string): Promise<boolean> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return false;
+  const { data } = await supabase
+    .from('votes')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('skill_id', skillId)
+    .maybeSingle();
+  return !!data;
 }
 
 export function buildSearchQuery(term: string): string {

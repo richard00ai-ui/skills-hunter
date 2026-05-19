@@ -1,6 +1,9 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { getSkillById } from '@/lib/queries';
+import { getSkillById, getComments, getCurrentUser, getUserVote } from '@/lib/queries';
+import VoteButton from '@/components/VoteButton';
+import CommentForm from '@/components/CommentForm';
+import CommentList from '@/components/CommentList';
 
 interface SkillPageProps {
   params: Promise<{ id: string }>;
@@ -8,7 +11,12 @@ interface SkillPageProps {
 
 export default async function SkillPage({ params }: SkillPageProps) {
   const { id } = await params;
-  const skill = await getSkillById(id);
+  const [skill, comments, user, voted] = await Promise.all([
+    getSkillById(id),
+    getComments(id),
+    getCurrentUser(),
+    getUserVote(id),
+  ]);
   if (!skill) notFound();
 
   return (
@@ -34,7 +42,8 @@ export default async function SkillPage({ params }: SkillPageProps) {
                 {skill.description}
               </p>
             </div>
-            <div className="flex flex-wrap gap-4 pt-4">
+            <div className="flex flex-wrap items-center gap-4 pt-4">
+              <VoteButton skillId={skill.id} voted={voted} count={skill.vote_count} />
               <a
                 href={`https://github.com/${skill.repo}`}
                 target="_blank"
@@ -87,7 +96,7 @@ export default async function SkillPage({ params }: SkillPageProps) {
               )}
             </div>
 
-            {/* Stats row */}
+            {/* Stats */}
             <div className="grid grid-cols-3 gap-6">
               <div className="bg-surface-container-lowest rounded-lg p-6 text-center">
                 <p className="text-display-sm font-black text-primary">{skill.vote_count}</p>
@@ -105,20 +114,30 @@ export default async function SkillPage({ params }: SkillPageProps) {
               </div>
             </div>
 
-            {/* Comments placeholder */}
+            {/* Community Talk */}
             <div className="space-y-8">
               <h2 className="text-4xl font-display font-bold text-on-surface">Community Talk</h2>
-              <div className="bg-surface-container-low p-8 rounded-lg">
-                <p className="text-body-lg text-on-surface-variant">
-                  Sign in to join the discussion. Comments are coming soon.
-                </p>
-              </div>
+              {user ? (
+                <CommentForm skillId={skill.id} />
+              ) : (
+                <div className="bg-surface-container-low p-6 rounded-lg flex items-center justify-between gap-4">
+                  <p className="text-body-md text-on-surface-variant">
+                    Sign in to join the discussion.
+                  </p>
+                  <Link
+                    href="/login"
+                    className="bg-primary text-on-primary px-6 py-3 rounded-xl font-bold bounce-active"
+                  >
+                    Sign in
+                  </Link>
+                </div>
+              )}
+              <CommentList comments={comments} />
             </div>
           </div>
 
           {/* Sidebar */}
           <aside className="lg:col-span-4 space-y-8">
-            {/* Terminal */}
             <div
               id="install"
               className="bg-inverse-surface rounded-lg p-6 text-on-primary-fixed shadow-xl"
@@ -136,7 +155,6 @@ export default async function SkillPage({ params }: SkillPageProps) {
               </div>
             </div>
 
-            {/* Trust badge */}
             <div className="bg-surface-container-high rounded-lg p-6 flex items-center gap-4">
               <div className="w-14 h-14 bg-surface-container-lowest text-primary rounded-full flex items-center justify-center shadow-sm">
                 <span
@@ -154,7 +172,6 @@ export default async function SkillPage({ params }: SkillPageProps) {
               </div>
             </div>
 
-            {/* Metadata */}
             <div className="bg-surface-container-lowest rounded-lg p-8 space-y-6">
               <div className="space-y-4">
                 <div className="flex justify-between items-center py-3">

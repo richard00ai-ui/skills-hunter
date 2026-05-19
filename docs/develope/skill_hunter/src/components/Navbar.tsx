@@ -1,8 +1,10 @@
 import Link from 'next/link';
 import type { Category } from '@/types';
+import { signOut } from '@/lib/actions';
 
 interface NavbarProps {
   categories: Category[];
+  user: { email?: string | null } | null;
   activeSlug?: string;
 }
 
@@ -15,7 +17,7 @@ const CATEGORY_LABEL_EN: Record<string, string> = {
   other: 'Other',
 };
 
-export default function Navbar({ categories, activeSlug }: NavbarProps) {
+export default function Navbar({ categories, user, activeSlug }: NavbarProps) {
   return (
     <header className="w-full top-0 sticky z-50 bg-surface-container-low shadow-sm px-8 py-4 flex items-center justify-between">
       <div className="flex items-center gap-8">
@@ -56,12 +58,28 @@ export default function Navbar({ categories, activeSlug }: NavbarProps) {
             className="bg-surface-container-lowest border-none rounded-full py-2 pl-10 pr-4 w-64 focus:ring-2 focus:ring-primary text-body-md transition-all outline-none"
           />
         </form>
-        <Link
-          href="/login"
-          className="bg-gradient-to-br from-primary to-primary-container text-on-primary px-8 py-3 rounded-xl font-bold bounce-active transition-transform shadow-md inline-block"
-        >
-          Sign Up
-        </Link>
+        {user ? (
+          <div className="flex items-center gap-3">
+            <span className="hidden md:inline text-label-md text-on-surface-variant max-w-[200px] truncate">
+              {user.email}
+            </span>
+            <form action={signOut}>
+              <button
+                type="submit"
+                className="bg-surface-container-highest text-on-secondary-container px-6 py-3 rounded-xl font-bold bounce-active transition-transform shadow-sm"
+              >
+                Sign out
+              </button>
+            </form>
+          </div>
+        ) : (
+          <Link
+            href="/login?mode=signup"
+            className="bg-gradient-to-br from-primary to-primary-container text-on-primary px-8 py-3 rounded-xl font-bold bounce-active transition-transform shadow-md inline-block"
+          >
+            Sign Up
+          </Link>
+        )}
       </div>
     </header>
   );
